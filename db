@@ -1,0 +1,110 @@
+/// db by liqon, 02.10 v1
+
+#include <iostream>
+#include "database.h"
+
+void Database::createTable()
+{
+    sqlite3_open("Database.db", &db);
+    int rc = sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS calendary(mode INT, name varchar(100), text varchar(32760), date date, time time);", NULL, NULL, &err);
+    if (rc != SQLITE_OK)
+        exit(*err);
+}
+
+void Database::insert(memoNoteInputInfo info)
+{
+    string query = "insert into calendary VALUES ("+(info.mode)+", "+(info.name)+", "+(info.text)+", date("+(info.date)+"), time("+(info.time)+"));";
+    cout << query << endl;
+    int rc = sqlite3_exec(db, query.c_str(), NULL, NULL, &err);
+    if (rc != SQLITE_OK)
+        exit(*err);
+}
+
+void Database::insert(vector<QString> info)
+{
+    string query = "insert into calendary VALUES ("+(info[0].toStdString())+", "+(info[1].toStdString())+", "+(info[2].toStdString())+", date("+(info[3].toStdString())+"), time("+(info[4].toStdString())+"));";
+    cout << query << endl;
+    int rc = sqlite3_exec(db, query.c_str(), NULL, NULL, &err);
+    if (rc != SQLITE_OK)
+        exit(*err);
+}
+
+vector<QStringInfo> Database::select()
+{
+    vector<QStringInfo> all;
+    sqlite3_stmt* stmt;
+    sqlite3_prepare_v2(db, "select mode, name, text, date, time from calendary", -1, &stmt, NULL);
+
+    QStringInfo info;
+
+    while (sqlite3_step(stmt) != SQLITE_DONE)
+    {
+        info = {QString::fromStdString(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0))),
+                QString::fromStdString(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1))),
+                QString::fromStdString(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2))),
+                QString::fromStdString(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3))),
+                QString::fromStdString(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4)))};
+        all.push_back(info);
+    }
+    return all;
+}
+
+vector<QStringInfo> Database::selectSearch(string modifier)
+{
+    vector<QStringInfo> all;
+
+    sqlite3_stmt* stmt;
+    string modi = "select mode, name, text, date, time from calendary " + modifier;
+    sqlite3_prepare_v2(db, modi.c_str() , -1, &stmt, NULL);
+
+    QStringInfo info;
+
+    while (sqlite3_step(stmt) != SQLITE_DONE)
+    {
+        info = {QString::fromStdString(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0))),
+                QString::fromStdString(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1))),
+                QString::fromStdString(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2))),
+                QString::fromStdString(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3))),
+                QString::fromStdString(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4)))};
+        all.push_back(info);
+    }
+    return all;
+}
+
+void Database::update(string name, memoNoteInputInfo info)
+{
+    string upd_query_mode = "UPDATE calendary set mode = "+(info.mode)+" where name = "+(name)+"; ";
+    string upd_query_name = "UPDATE calendary set name = "+(info.name)+" where name = "+(name)+"; ";
+    string upd_query_text = "UPDATE calendary set text = "+(info.text)+" where name = "+(name)+"; ";
+    string upd_query_date = "UPDATE calendary set date = date("+(info.date)+") where name = "+(name)+"; ";
+    string upd_query_time = "UPDATE calendary set time = time("+(info.time)+") where name = "+(name)+"; ";
+    string upd_query = upd_query_mode + upd_query_name + upd_query_text + upd_query_date + upd_query_time;
+    cout << upd_query << "\n";
+    int rc = sqlite3_exec(db, upd_query.c_str(), NULL, NULL, &err);
+    if (rc != SQLITE_OK)
+        exit(*err);
+}
+
+
+void Database::deleteTable()
+{
+    string del_query = "delete from calendary";
+    int rc = sqlite3_exec(db, del_query.c_str(), NULL, NULL, &err);
+    if (rc != SQLITE_OK)
+        exit(*err);
+}
+
+void Database::deleteChosen(string modifier)
+{
+    string del_query = "delete from calendary " + modifier;
+    int rc = sqlite3_exec(db, del_query.c_str(), NULL, NULL, &err);
+    if (rc != SQLITE_OK)
+        exit(*err);
+}
+
+void Database::close()
+{
+    sqlite3_close(db);
+}
+
+
